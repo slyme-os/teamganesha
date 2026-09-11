@@ -1,10 +1,11 @@
-const CACHE_NAME_STATIC = 'devadarshan-static-v2';
-const CACHE_NAME_DYNAMIC = 'devadarshan-dynamic-v2';
-const CACHE_NAME_IMAGES = 'devadarshan-images-v2';
+const CACHE_NAME_STATIC = 'devadarshan-static-v3';
+const CACHE_NAME_DYNAMIC = 'devadarshan-dynamic-v3';
+const CACHE_NAME_IMAGES = 'devadarshan-images-v3';
 
 const STATIC_SHELL_ASSETS = [
   '/',
   '/manifest.json',
+  '/audio/shank.mp3',
   '/images/pandals/lalbaug_360.png',
   '/images/pandals/gsb_360.png',
   '/images/pandals/chintamani_360.png',
@@ -39,11 +40,11 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Non-GET requests (e.g. POST submissions) pass through directly
+  // Non-GET requests pass through directly
   if (request.method !== 'GET') return;
 
-  // 1. Cache-First Strategy for 360 Panorama Textures & Images
-  if (request.destination === 'image' || url.pathname.startsWith('/images/')) {
+  // 1. Cache-First Strategy for Audio & 360 Panorama Textures
+  if (request.destination === 'image' || request.destination === 'audio' || url.pathname.startsWith('/images/') || url.pathname.startsWith('/audio/')) {
     event.respondWith(
       caches.open(CACHE_NAME_IMAGES).then((cache) => {
         return cache.match(request).then((cachedResponse) => {
@@ -54,8 +55,7 @@ self.addEventListener('fetch', (event) => {
             }
             return networkResponse;
           }).catch(() => {
-            // Fallback default image if offline and uncached
-            return caches.match('/images/pandals/lalbaug_360.png');
+            return caches.match('/audio/shank.mp3');
           });
         });
       })

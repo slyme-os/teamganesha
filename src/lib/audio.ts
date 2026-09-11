@@ -1,7 +1,7 @@
 class AudioEngine {
   private ctx: AudioContext | null = null;
   private isMuted: boolean = false;
-  private backgroundAudio: HTMLAudioElement | null = null;
+  private shankhAudio: HTMLAudioElement | null = null;
 
   private initCtx() {
     if (!this.ctx && typeof window !== 'undefined') {
@@ -22,8 +22,6 @@ class AudioEngine {
       if (!this.ctx || this.isMuted) return;
 
       const now = this.ctx.currentTime;
-
-      // Primary bell frequency (~1200 Hz with harmonic overtones)
       const frequencies = [1200, 2410, 3620, 4850];
       const gains = [0.6, 0.3, 0.15, 0.08];
 
@@ -35,7 +33,6 @@ class AudioEngine {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(freq, now);
 
-        // Exponential decay for realistic bell resonance
         gain.gain.setValueAtTime(gains[idx], now);
         gain.gain.exponentialRampToValueAtTime(0.0001, now + 3.0);
 
@@ -50,8 +47,43 @@ class AudioEngine {
     }
   }
 
-  // Synthesize Conch Shell / Shankh sound
+  // Play uploaded Shankh audio file (/audio/shank.mp3 or /audio/shankh.mp3)
   playShankh() {
+    if (this.isMuted) return;
+
+    try {
+      if (typeof window !== 'undefined') {
+        // Stop previous Shankh sound if playing
+        if (this.shankhAudio) {
+          this.shankhAudio.pause();
+          this.shankhAudio.currentTime = 0;
+        }
+
+        // Try user's uploaded shank.mp3 file first, then shankh.mp3
+        const audio = new Audio('/audio/shank.mp3');
+        this.shankhAudio = audio;
+
+        audio.play().catch(() => {
+          // If shank.mp3 fails, try shankh.mp3
+          const fallbackAudio = new Audio('/audio/shankh.mp3');
+          this.shankhAudio = fallbackAudio;
+          fallbackAudio.play().catch(() => {
+            // Fallback to Web Audio synthesis if file is unplayable
+            this.playShankhSynth();
+          });
+        });
+
+        return;
+      }
+    } catch (e) {
+      console.warn('Shankh audio play failed, falling back to synth', e);
+    }
+
+    this.playShankhSynth();
+  }
+
+  // Synthesize Shankh sound fallback
+  private playShankhSynth() {
     try {
       this.initCtx();
       if (!this.ctx || this.isMuted) return;
@@ -61,7 +93,6 @@ class AudioEngine {
       const gain = this.ctx.createGain();
 
       osc.type = 'sawtooth';
-      // Low resonant frequency swelling upwards
       osc.frequency.setValueAtTime(220, now);
       osc.frequency.exponentialRampToValueAtTime(330, now + 0.8);
       osc.frequency.setValueAtTime(330, now + 1.5);
@@ -84,8 +115,8 @@ class AudioEngine {
 
   toggleMute(): boolean {
     this.isMuted = !this.isMuted;
-    if (this.backgroundAudio) {
-      this.backgroundAudio.muted = this.isMuted;
+    if (this.shankhAudio) {
+      this.shankhAudio.muted = this.isMuted;
     }
     return this.isMuted;
   }
